@@ -21,7 +21,7 @@ In order to compile this snippet, execute the `compile.sh` shell script.
 Perhaps you want to adapt the dependency versions to what is available in your site before the compilation.
 
 ## Changing compiler flags
-
+To modify the choice of compiler (`CC` or `NVCC`) and/or compiler flags (e.g. `CFLAGS` or `NVCCFLAGS`), you may export your environment varialbe before triggering the `./compile.sh`.
 
 ## Call signature
 How to launch the so-called `hybrid` executable?
@@ -37,10 +37,13 @@ E.g. for 2 processes and 4 threads per process:
 # step 1
 srun -A <account> --cluster wice --partition gpu --nodes 1 --ntasks 2 --cpus-per-task 4 --gpus-per-node 1 gpu_cmode default --pty /bin/bash -l
 
+# step 2
 cd <somewhere>
 git clone git@github.com:moravveji/gpu-compute-mode.git
 cd gpu-compute-mode
 ./compile
+
+# step 3
 export OMP_NUM_THREADS=<N_OMP_THREADS>
 mpirun -n <N_MPI_PROCS> ./hybrid -n <N_ITER> -m <M> 
 ```
