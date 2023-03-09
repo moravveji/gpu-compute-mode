@@ -1,7 +1,7 @@
 NVCC ?= nvcc
-NVCCFLAGS ?= --compile -arch=sm_80
+NVCCFLAGS ?= --compile -arch=sm_80 -dc --x cu
 
-CC ?= mpicc
+CC ?= mpic++
 CFLAGS ?= -fPIC -g -Wall -Wextra -fopenmp -Wimplicit-fallthrough=0
 INC ?= -I. -I$(EBROOTOPENMPI)/include
 LIBS ?= -L$(EBROOTOPENMPI)/lib64 -lmpi
