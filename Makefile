@@ -1,36 +1,29 @@
 NVCC ?= nvcc
 NVCCFLAGS ?= --compile -arch=sm_80 -dc --x cu
+NVCCLIBS ?= -L$(EBROOTCUDA)/lib64 -lcudart 
 
-CC ?= mpic++
-CFLAGS ?= -fPIC -g -Wall -Wextra -fopenmp -Wimplicit-fallthrough=0
+CXX ?= mpic++
+CXXCFLAGS ?= -fPIC -g -Wall -Wextra -fopenmp -Wimplicit-fallthrough=0
 INC ?= -I. -I$(EBROOTOPENMPI)/include
 LIBS ?= -L$(EBROOTOPENMPI)/lib64 -lmpi
 
 .PHONY: all clean
 
+######################################################
+
 exec = hybrid
-all: $(exec) $(execute)
-
-# execute: mpi_only multiprocs_multithread
-
-# multiprocs_multithread: hybrid
-# 	export OMP_NUM_THREADS=2
-# 	@echo "Using 2 processes and $OMP_NUM_THREADS threads"
-# 	mpirun -n 2 $<
-
-# mpi_only: hybrid
-# 	unset OMP_NUM_THREADS
-# 	@echo "Using 2 processes"
-# 	mpirun -n 2 $<
+all: $(exec)
 
 hybrid : main.o kernel.o
-	$(CC) $(CFLAGS) $(LIBS) $< -o $@
+	$(CXX) $(CXXCFLAGS) $^ -o $@ $(LIBS) $(NVCCLIBS)
 
-main.o : main.c kernel.o
-	$(CC) $(CFLAGS) $(INC) -c $< -o $@
+main.o : main.c
+	$(CXX) $(CXXCFLAGS) $(INC) -c $< -o $@
 
 kernel.o : kernel.cu
-	$(NVCC) $(NVCCFLAGS) -c $< -o $@
+	$(NVCC) $(NVCCFLAGS) -c $< -o $@ $(NVCCLIBS)
+
+######################################################
 
 clean:
 	rm -f *.o
