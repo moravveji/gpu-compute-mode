@@ -1,6 +1,7 @@
 NVCC ?= nvcc
-NVCCFLAGS ?= --compile -arch=sm_80 -dc --x cu
+NVCCFLAGS ?= --compile -dc --x cu
 NVCCLIBS ?= -L$(EBROOTCUDA)/lib64 -lcudart 
+SM_ARCH ?= -arch=sm_80
 
 CXX ?= mpic++
 CXXCFLAGS ?= -fPIC -g -Wall -Wextra -fopenmp -Wimplicit-fallthrough=0
@@ -14,15 +15,17 @@ LIBS ?= -L$(EBROOTOPENMPI)/lib64 -lmpi
 exec = hybrid
 all: $(exec)
 
-hybrid : main.o kernel.o
+hybrid : main.o kernel.o link.o
 	$(CXX) $(CXXCFLAGS) $^ -o $@ $(LIBS) $(NVCCLIBS)
 
 main.o : main.c
 	$(CXX) $(CXXCFLAGS) $(INC) -c $< -o $@
 
 kernel.o : kernel.cu
-	$(NVCC) $(NVCCFLAGS) -c $< -o $@ $(NVCCLIBS)
+	$(NVCC) $(SM_ARCH) $(NVCCFLAGS) -c $< -o $@ $(NVCCLIBS)
 
+link.o : kernel.o
+	$(NVCC) $(SM_ARCH) -dlink $< -o $@ $(NVCCLIBS)
 ######################################################
 
 clean:
