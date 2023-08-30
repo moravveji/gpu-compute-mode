@@ -1,6 +1,6 @@
 NVCC ?= nvcc
-NVCCFLAGS ?= --compile -arch=sm_80 -dc --x cu
-NVCCLIBS ?= -L$(EBROOTCUDA)/lib64 -lcudart 
+NVCCFLAGS ?= --compile -arch=native
+NVCCLIBS ?= -L$(EBROOTCUDA)/lib64 -lcudart
 
 CXX ?= mpic++
 CXXCFLAGS ?= -fPIC -g -Wall -Wextra -fopenmp -Wimplicit-fallthrough=0
@@ -22,6 +22,13 @@ main.o : main.c
 
 kernel.o : kernel.cu
 	$(NVCC) $(NVCCFLAGS) -c $< -o $@ $(NVCCLIBS)
+
+######################################################
+
+launch: np_4_omp_2
+
+np_4_omp_2: hybrid
+	OMP_NUM_THREADS=2 mpirun --map-by numa:PE=2 --report-bindings ./$< -n 10 -m 20 -t 32
 
 ######################################################
 
