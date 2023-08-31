@@ -11,9 +11,10 @@
 #define SUCCESS 0
 #define FAILURE 11
 #define USAGE "\nUsage: \n" \
-              "mpirun -n <np> hybrid " \
+              "mpirun -n <np> launcher " \
               "[-n NITER] " \
-              "[-m POW2]\n\n"
+              "[-m POW2] " \
+              "[-t CUTHRD]\n\n"
 
 
 int main(int argc, char ** argv) {
@@ -54,6 +55,10 @@ int main(int argc, char ** argv) {
                 // fall through
                 case 'n':
                     niter = atoi(optarg);
+                    if (niter < 1) {
+                        fprintf(stderr, "Error: choose n >= 1");
+                        MPI_Abort(MPI_COMM_WORLD, FAILURE);
+                    }
                     fprintf(stdout, "niter = %d\n", niter);
                     break;
                 case 'm':
@@ -78,6 +83,7 @@ int main(int argc, char ** argv) {
             }
         }
     
+        fprintf(stdout, "num MPI ranks = %d; ", nranks);
         fprintf(stdout, "OMP_NUM_THREADS = %d\n", nomp);
     
         MPI_Bcast(&niter, 1, MPI_INT, master, MPI_COMM_WORLD);
@@ -86,23 +92,20 @@ int main(int argc, char ** argv) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // prep to collect results
-    float maxerr[nomp] = {0.0f};
-
     // multi-threaded & multi-process loop
     #pragma omp parallel
     { 
         int iomp = omp_get_thread_num();
+        float maxerr = 0.0f;
 
         // every thread of every process uses the GPU for `niter` times
         for (int i=0; i<niter; i++) {
-            maxerr[iomp] += call_saxpy(narr, ncudathreads);
-            }
+            maxerr += call_saxpy(narr, ncudathreads);
+        }
 
-        maxerr[iomp] /= nomp;
-        printf ("rank %d out of %d procs; thread %d out of %d OMP threads: maxerr=%.4f\n", \
-                rank, nranks, iomp, nomp, maxerr[iomp]);
-
+        maxerr /= niter;
+        printf ("rank %d out of %d procs; thread %d out of %d OMP threads: maxerr=%.6f\n", \
+                rank, nranks, iomp, nomp, maxerr);
     }
     #pragma omp barrier
 

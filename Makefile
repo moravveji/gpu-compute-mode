@@ -1,20 +1,22 @@
-NVCC ?= nvcc
-NVCCFLAGS ?= --compile -arch=native
-NVCCLIBS ?= -L$(EBROOTCUDA)/lib64 -lcudart
+NVCC = nvcc
+NVCCFLAGS = --compile -arch=native
+NVCCLIBS = -L$(EBROOTCUDA)/lib64 -lcudart
 
-CXX ?= mpic++
-CXXCFLAGS ?= -fPIC -g -Wall -Wextra -fopenmp -Wimplicit-fallthrough=0
-INC ?= -I. -I$(EBROOTOPENMPI)/include
-LIBS ?= -L$(EBROOTOPENMPI)/lib64 -lmpi
+CXX = mpic++
+CXXCFLAGS = -fPIC -g -Wall -Wextra -fopenmp -Wimplicit-fallthrough=0
+INC = -I. -I$(EBROOTOPENMPI)/include
+LIBS = -L$(EBROOTOPENMPI)/lib64 -lmpi
+
+exec_name = launcher-${VSC_INSTITUTE_CLUSTER}-${VSC_ARCH_LOCAL}
 
 .PHONY: all clean
 
 ######################################################
 
-exec = hybrid
+exec = $(exec_name)
 all: $(exec)
 
-hybrid : main.o kernel.o
+$(exec_name) : main.o kernel.o
 	$(CXX) $(CXXCFLAGS) $^ -o $@ $(LIBS) $(NVCCLIBS)
 
 main.o : main.c
