@@ -13,8 +13,7 @@
 #define USAGE "\nUsage: \n" \
               "mpirun -n <np> launcher " \
               "[-n NITER] " \
-              "[-m POW2] " \
-              "[-t CUTHRD]\n\n"
+              "[-m POW2]\n\n"
 
 
 int main(int argc, char ** argv) {
@@ -23,7 +22,7 @@ int main(int argc, char ** argv) {
     int const master = 0;
     int provided_thread;
     int niter, narr;
-    int ncudathreads;
+    int ncudablocks, ncudathreads;
 
     // MPI prep
     MPI_Init_thread(&argc, &argv, MPI_THREAD_SERIALIZED, &provided_thread);
@@ -45,8 +44,9 @@ int main(int argc, char ** argv) {
             exit(EXIT_FAILURE);
         }
 
+        // parse cmd args
         int opt, power2;
-        while ((opt = getopt(argc, argv, "hn:m:t:")) != -1) {
+        while ((opt = getopt(argc, argv, "hn:m:")) != -1) {
             switch (opt) {
                 case 'h':
                     fprintf(stdout, USAGE);
@@ -70,24 +70,26 @@ int main(int argc, char ** argv) {
                     narr = 1 << power2;
                     fprintf(stdout, "array_size = %d\n", narr);
                     break;
-                case 't':
-                    ncudathreads = atoi(optarg);
-                    if (ncudathreads > 128) {
-                        fprintf(stderr, "Error: choose t <= 128");
-                        MPI_Abort(MPI_COMM_WORLD, FAILURE);
-                    }
-                    break;
                 default:
                     fprintf(stderr, USAGE);
                     MPI_Abort(MPI_COMM_WORLD, FAILURE);
             }
         }
-    
-        fprintf(stdout, "num MPI ranks = %d; ", nranks);
-        fprintf(stdout, "OMP_NUM_THREADS = %d\n", nomp);
+
+        // divide GPU SMs among all procs and threads
+        // print_gpu_info();
+        ncudathreads = get_maxThreadsPerBlock();
+        ncudablocks = get_num_blocks(nranks, nomp);
+
+        fprintf(stdout, "Launch Setup: ");
+        fprintf(stdout, "MPI ranks = %d; ", nranks);
+        fprintf(stdout, "OMP_NUM_THREADS = %d; ", nomp);
+        fprintf(stdout, "Num blocks = %d; ", ncudablocks);
+        fprintf(stdout, "Threads per block = %d\n", ncudathreads);
     
         MPI_Bcast(&niter, 1, MPI_INT, master, MPI_COMM_WORLD);
         MPI_Bcast(&narr, 1, MPI_INT, master, MPI_COMM_WORLD);
+        MPI_Bcast(&ncudablocks, 1, MPI_INT, master, MPI_COMM_WORLD);
         MPI_Bcast(&ncudathreads, 1, MPI_INT, master, MPI_COMM_WORLD);
     }
     MPI_Barrier(MPI_COMM_WORLD);
@@ -100,7 +102,7 @@ int main(int argc, char ** argv) {
 
         // every thread of every process uses the GPU for `niter` times
         for (int i=0; i<niter; i++) {
-            maxerr += call_saxpy(narr, ncudathreads);
+            maxerr += call_saxpy(narr, ncudablocks, ncudathreads);
         }
 
         maxerr /= niter;
@@ -108,6 +110,8 @@ int main(int argc, char ** argv) {
                 rank, nranks, iomp, nomp, maxerr);
     }
     #pragma omp barrier
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     MPI_Finalize();
 
