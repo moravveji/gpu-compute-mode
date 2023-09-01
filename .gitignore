@@ -1,2 +1,4 @@
 *.o
 *.ptx
+slurm-*.out
+launcher-*
