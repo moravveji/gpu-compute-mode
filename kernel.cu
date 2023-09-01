@@ -47,9 +47,19 @@ float call_saxpy(int narr, int nblocks, int nthreads) {
     float *x, *y, *dx, *dy;  // host and device x and y arrays
     x = (float*) malloc(narr * sizeof(float));
     y = (float*) malloc(narr * sizeof(float));
+    if (x == NULL || y == NULL) {
+        fprintf(stderr, "ERROR: malloc failed");
+        exit(21);
+    }
 
-    cudaMalloc(&dx, narr * sizeof(float));
-    cudaMalloc(&dy, narr * sizeof(float));
+    if (cudaMalloc((void**) &dx, narr * sizeof(float)) != cudaSuccess) {
+        fprintf(stderr, "ERROR: cudaMalloc failed for dx");
+        exit(21);
+    }
+    if (cudaMalloc((void**) &dy, narr * sizeof(float)) != cudaSuccess) {
+        fprintf(stderr, "ERROR: cudaMalloc failed for dy");
+        exit(21);
+    }
 
     for (int i=0; i<narr; i++) {
         x[i] = 1.0f; y[i] = 2.0f;
@@ -58,14 +68,14 @@ float call_saxpy(int narr, int nblocks, int nthreads) {
     cudaMemcpy(dx, x, narr*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(dy, y, narr*sizeof(float), cudaMemcpyHostToDevice);
 
-    // int nblocks = (narr + nthreads - 1) / nthreads;
     saxpy<<<nblocks, nthreads>>>(narr, 2.0f, dx, dy);
 
     cudaMemcpy(y, dy, narr*sizeof(float), cudaMemcpyDeviceToHost);
 
     float maxerr = 0.0f;
     for (int i=0; i<narr; i++) {
-        maxerr = max(maxerr, abs(y[i] - 4.0f));
+        float locerr = fabs(y[i] - 4.0f);
+        maxerr = (locerr > maxerr) ? locerr : maxerr;
     }
 
     cudaFree(dx); cudaFree(dy);

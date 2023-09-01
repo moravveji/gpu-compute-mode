@@ -81,7 +81,7 @@ int main(int argc, char ** argv) {
         ncudathreads = get_maxThreadsPerBlock();
         ncudablocks = get_num_blocks(nranks, nomp);
 
-        fprintf(stdout, "Launch Setup: ");
+        fprintf(stdout, "Launch Config: ");
         fprintf(stdout, "MPI ranks = %d; ", nranks);
         fprintf(stdout, "OMP_NUM_THREADS = %d; ", nomp);
         fprintf(stdout, "Num blocks = %d; ", ncudablocks);
@@ -95,7 +95,7 @@ int main(int argc, char ** argv) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     // multi-threaded & multi-process loop
-    #pragma omp parallel
+    #pragma omp parallel default(none) shared(rank, nranks, nomp, niter, narr, ncudablocks, ncudathreads)
     { 
         int iomp = omp_get_thread_num();
         float maxerr = 0.0f;
@@ -109,7 +109,6 @@ int main(int argc, char ** argv) {
         printf ("rank %d out of %d procs; thread %d out of %d OMP threads: maxerr=%.6f\n", \
                 rank, nranks, iomp, nomp, maxerr);
     }
-    #pragma omp barrier
 
     MPI_Barrier(MPI_COMM_WORLD);
 
