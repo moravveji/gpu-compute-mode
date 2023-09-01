@@ -7,7 +7,7 @@ CXXCFLAGS = -fPIC -g -Wall -Wextra -fopenmp -Wimplicit-fallthrough=0
 INC = -I. -I$(EBROOTOPENMPI)/include
 LIBS = -L$(EBROOTOPENMPI)/lib64 -lmpi
 
-exec_name = launcher-${VSC_INSTITUTE_CLUSTER}-${VSC_ARCH_LOCAL}
+exec_name = launcher-${VSC_INSTITUTE_CLUSTER}-${VSC_ARCH_LOCAL}-${VSC_OS_LOCAL}
 
 .PHONY: all clean
 
